@@ -22,10 +22,10 @@ on:
         default: 'false'
 
 env:
-  REPO_URL: https://github.com/xuxin1955/lede
+  REPO_URL: https://github.com/xuxin1955/immortalwrt
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: x40g.config
+  CONFIG_FILE: .config_small
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
   UPLOAD_BIN_DIR: false
