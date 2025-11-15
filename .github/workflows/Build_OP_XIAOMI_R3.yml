@@ -32,10 +32,7 @@ jobs:
       with:
         fetch-depth: 1
 
-    - name: Show hardware info
-      run: |
-        chmod 755 ./scripts/show_hardware_info.sh
-        ./scripts/show_hardware_info.sh
+    
         
     - name: Free disk space
       uses: jlumbroso/free-disk-space@main
