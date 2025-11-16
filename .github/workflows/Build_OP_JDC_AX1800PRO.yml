@@ -156,6 +156,6 @@ jobs:
     - name: Cleanup workflows
       uses: LeeHe-gif/delete-workflow-runs@main
       with:
-        retain_days: 1
-        keep_minimum_runs: 3
+        retain_days: 7
+        keep_minimum_runs: 7
         token: ${{ secrets.GITHUB_TOKEN }}
