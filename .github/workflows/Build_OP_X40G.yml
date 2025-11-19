@@ -50,21 +50,8 @@ jobs:
         sudo -E apt-get -y install $(curl -fsSL https://raw.githubusercontent.com/xuxin1955/depend_ubuntu2204_openwrt/refs/heads/main/depend_ubuntu2204_openwrt)
         sudo timedatectl set-timezone "${TZ}"
         echo "status=success" >> ${GITHUB_OUTPUT}
-        
-    - name: Clone source code
-      id: clone
-      if: ${{ steps.init.outputs.status }} == 'success' && !cancelled()
-      run: |
-        git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
-        git clone --depth 1 https://github.com/vernesong/OpenClash.git OpenClash
-        cd openwrt
-        cat <<EOF >> feeds.conf.default
-        src-git modem https://github.com/FUjr/QModem.git;main
-        src-git istore https://github.com/linkease/istore;main
-        src-git nas https://github.com/linkease/nas-packages.git;master
-        src-git nas_luci https://github.com/linkease/nas-packages-luci.git;main
-        src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;main
-        EOF
+      
+    
 
     - name: Setup disk space
       run: |
@@ -78,8 +65,7 @@ jobs:
       working-directory: ./openwrt
       run: |
         ./scripts/feeds update -a
-        rm -rf feeds/luci/applications/luci-app-openclash
-        cp -r ../OpenClash/luci-app-openclash feeds/luci/applications/
+        
         ./scripts/feeds install -a -f
 
     - name: Configure build
@@ -98,6 +84,11 @@ jobs:
       run: |
         make download -j$(nproc) || { echo "❌ Download failed"; exit 1; }
         find dl -size -1024c -delete
+
+    - name: Compile Node host tools
+      working-directory: ./openwrt
+      run: |
+       make package/feeds/packages/node/host/{clean,compile} V=s -j1
 
     - name: Compile firmware
       id: compile
