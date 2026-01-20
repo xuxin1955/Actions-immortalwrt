@@ -1,0 +1,159 @@
+name: Build_XG_040G_MD
+
+on: 
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      log_switch:
+        description: "编译日志开关"
+        required: false
+        default: "false"
+        type: boolean
+        options:
+          - true
+          - false
+
+env:
+  CONFIG_FILE: 'config/040.config'
+  REPO_URL: https://github.com/bingoguo93/immortalwrt
+  REPO_BRANCH: openwrt-25.12
+  UPLOAD_FIRMWARE: true
+  UPLOAD_RELEASE: true
+  TZ: Asia/Shanghai
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+
+    - name: Show hardware info
+      run: |
+        chmod 755 ./scripts/show_hardware_info.sh
+        ./scripts/show_hardware_info.sh
+
+    - name: Free disk space
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: true
+        android: true
+        dotnet: true
+
+    - name: space usage check  
+      run: |
+        df -H
+
+    - name: Initialization environment
+      id: init
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo -E apt-get -y update
+        sudo -E apt-get -y install $(curl -fsSL https://raw.githubusercontent.com/LeeHe-gif/depend_ubuntu2204_openwrt/main/depend_ubuntu2204_openwrt)
+        sudo timedatectl set-timezone "${TZ}"
+        echo "status=success" >> ${GITHUB_OUTPUT}
+        
+    - name: Clone source code
+      id: codes
+      if: ${{ steps.init.outputs.status }} == 'success' && !cancelled()
+      run: |
+        git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
+        git clone --depth 1 https://github.com/vernesong/OpenClash.git OpenClash
+        # cd openwrt
+        # echo 'src-git modem https://github.com/FUjr/QModem.git;main' >> feeds.conf.default
+        echo "status=success" >> ${GITHUB_OUTPUT}
+        
+    - name: Free up disk space
+      run: |
+        sudo mkdir -p /mnt/openwrt/{dl,staging_dir,build_dir}
+        sudo chown -R $USER:$GROUPS /mnt/openwrt
+        ln -sfn /mnt/openwrt/dl openwrt/dl
+        ln -sfn /mnt/openwrt/staging_dir openwrt/staging_dir
+        ln -sfn /mnt/openwrt/build_dir openwrt/build_dir
+        df -H
+
+    - name: Update & Install feeds
+      working-directory: ./openwrt
+      run: |
+        ./scripts/feeds update -a
+        rm -rf feeds/luci/applications/luci-app-openclash
+        cp -r ../OpenClash/luci-app-openclash feeds/luci/applications/
+        ./scripts/feeds install -a -f
+
+    - name: Configuration Customization
+      run: |
+        chmod +x ./scripts/customize.sh && ./scripts/customize.sh
+        [[ -d "files" ]] && mv -f files openwrt/files
+        cp -fv "${CONFIG_FILE}" openwrt/.config
+        
+    - name: Download package
+      working-directory: ./openwrt
+      run: |
+        make download -j$(nproc) || { echo "Download failed"; exit 1; }
+        find dl -size -1024c -delete
+
+    - name: Compile the OpenWrt
+      id: compile
+      run: |
+        cd openwrt/
+        make defconfig
+        if [[ "${{ inputs.log_switch }}" == "true" ]]; then
+            make -j1 V=s
+        else
+            make -j$(nproc)
+        fi
+        grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
+        [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
+        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+        echo "status=success" >> $GITHUB_OUTPUT
+        
+    - name: Organize files
+      id: organize
+      if: env.UPLOAD_FIRMWARE == 'true' && steps.compile.outputs.status == 'success'
+      run: |
+        cd openwrt/bin/targets/*/*
+        rm -rf packages
+        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Upload firmware directory
+      uses: actions/upload-artifact@main
+      if: steps.organize.outputs.status == 'success' && !cancelled()
+      with:
+        name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        path: ${{ env.FIRMWARE }}/*
+
+    - name: Generate release tag
+      id: tag
+      if: env.UPLOAD_RELEASE == 'true' && steps.organize.outputs.status == 'success'
+      run: |
+        echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
+        cat <<EOF > release.txt
+        🚀 OpenWrt firmware for XG_040G_MD
+        ----------------------
+        设备: XG-040G-MD
+        时间: $(date +"%Y-%m-%d %H:%M")
+        内核版本: 6.12.X
+        源码仓库: $REPO_URL
+        分支: $REPO_BRANCH
+        EOF
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Upload firmware to release
+      uses: softprops/action-gh-release@v1
+      if: steps.tag.outputs.status == 'success' && !cancelled()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag.outputs.release_tag }}
+        body_path: release.txt
+        files: ${{ env.FIRMWARE }}/*
+
+    - name: Delete workflow runs
+      uses: LeeHe-gif/delete-workflow-runs@main
+      with:
+        retain_days: 1
+        keep_minimum_runs: 3
+        token: ${{ secrets.GITHUB_TOKEN }}
