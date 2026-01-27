@@ -57,19 +57,8 @@ jobs:
       id: clone
       if: steps.init.outputs.status == 'success' && success()
       run: |
-        git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
-        git clone --depth 1 https://github.com/vernesong/OpenClash.git OpenClash
-        cd openwrt
-        cat <<EOF >> feeds.conf.default
-        src-git modem https://github.com/FUjr/QModem.git;main
-        EOF
-        
-    - name: Load custom feeds
-      run: |
-        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
-        chmod +x $DIY_P1_SH
-        cd openwrt
-        $GITHUB_WORKSPACE/$DIY_P1_SH
+      git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
+      echo "status=success" >> $GITHUB_OUTPUT
         
     - name: Setup disk space
       run: |
@@ -85,6 +74,13 @@ jobs:
         ./scripts/feeds update -a
       
         ./scripts/feeds install -a -f
+     
+    - name: Load custom feeds
+      run: |
+        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
+        chmod +x $DIY_P1_SH
+        cd openwrt
+        $GITHUB_WORKSPACE/$DIY_P1_SH
 
     - name: Configure build
       run: |
