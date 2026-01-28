@@ -1926,7 +1926,7 @@ CONFIG_PACKAGE_libiwinfo-data=y
 # end of ath10k Board-Specific Overrides
 
 # CONFIG_PACKAGE_aeonsemi-as21xxx-firmware is not set
-# CONFIG_PACKAGE_aic8800-pcie-firmware is not set
+CONFIG_PACKAGE_aic8800-pcie-firmware=y
 CONFIG_PACKAGE_aic8800-sdio-firmware=y
 CONFIG_PACKAGE_aic8800-usb-firmware=y
 # CONFIG_PACKAGE_aircard-pcmcia-firmware is not set
@@ -2249,7 +2249,7 @@ CONFIG_PACKAGE_kmod-scsi-core=y
 # Bluetooth Support
 #
 # CONFIG_PACKAGE_kmod-ath3k is not set
-CONFIG_PACKAGE_kmod-aic8800-btusb=y
+# CONFIG_PACKAGE_kmod-aic8800-btusb is not set
 CONFIG_PACKAGE_kmod-bluetooth=y
 # CONFIG_PACKAGE_kmod-bluetooth-6lowpan is not set
 # CONFIG_PACKAGE_kmod-btmrvl is not set
@@ -3093,6 +3093,7 @@ CONFIG_PACKAGE_kmod-usb3=y
 #
 # Wireless Drivers
 #
+CONFIG_PACKAGE_kmod-aic8800-pcie=y
 CONFIG_PACKAGE_kmod-aic8800-sdio=y
 CONFIG_AIC8800_SDIO_BT_SUPPORT=y
 CONFIG_PACKAGE_kmod-aic8800-usb=y
@@ -7275,7 +7276,7 @@ CONFIG_PACKAGE_ttyd=y
 # CONFIG_PACKAGE_libimobiledevice-utils is not set
 # CONFIG_PACKAGE_libusbmuxd-utils is not set
 # CONFIG_PACKAGE_plistutil is not set
-# CONFIG_PACKAGE_usbmuxd is not set
+CONFIG_PACKAGE_usbmuxd=y
 # end of libimobiledevice
 
 #
