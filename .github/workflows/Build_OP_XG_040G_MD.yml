@@ -77,7 +77,7 @@ jobs:
         python3 -m pip install --upgrade pip setuptools wheel
         python3 -m pip --version
         python3 -c "import setuptools.build_meta; print('setuptools.build_meta OK')"
-        python3 -m pip install Unidecode
+        python3 -m pip install Unidecode pyelftools
         
         
     - name: Clone source code
