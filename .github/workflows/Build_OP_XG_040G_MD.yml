@@ -1,0 +1,213 @@
+name: Build_OP_XG_040G_MD
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: false
+        type: boolean
+      log_switch:
+        description: "编译日志开关"
+        required: false
+        default: false
+        type: boolean
+
+env:
+  CONFIG_FILE: 'config/040.config'
+  REPO_URL: https://github.com/xiangtailiang/openwrt
+  REPO_BRANCH: main
+  FEEDS_CONF: feeds.conf.default
+  DIY_P4_SH: diy-part4.sh
+  UPLOAD_FIRMWARE: true
+  UPLOAD_RELEASE: true
+  TZ: Asia/Shanghai
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+
+    - name: Show hardware info
+      run: |
+        chmod 755 ./scripts/show_hardware_info.sh
+        ./scripts/show_hardware_info.sh
+
+    - name: Free disk space
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: true
+        android: true
+        dotnet: true
+
+    - name: space usage check  
+      run: |
+        df -H
+
+    - name: Initialization environment
+      id: init
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo -E apt-get -y update
+        sudo -E apt-get -y install $(curl -fsSL https://raw.githubusercontent.com/xuxin1955/depend_ubuntu2204_openwrt/refs/heads/main/depend_ubuntu2204_openwrt)
+        wget https://raw.githubusercontent.com/xuxin1955/depend_ubuntu2204_openwrt/main/mkbootimg_10.0.0+r36-9_all.deb
+        sudo dpkg -i mkbootimg_10.0.0+r36-9_all.deb
+        sudo apt-get install -f -y
+        # 验证安装
+        mkbootimg --help || true
+        MKBOOTIMG_PATH=$(which mkbootimg)
+        if [ -n "$MKBOOTIMG_PATH" ]; then
+        echo "mkbootimg found at: $MKBOOTIMG_PATH"
+        file "$MKBOOTIMG_PATH"
+        else
+        echo "❌ mkbootimg not found in PATH!"
+        fi
+        
+        sudo timedatectl set-timezone "${TZ}"
+        echo "status=success" >> ${GITHUB_OUTPUT}
+        
+    - name: Ensure Python build tools
+      run: |
+        python3 -m pip install --upgrade pip setuptools wheel
+        python3 -m pip --version
+        python3 -c "import setuptools.build_meta; print('setuptools.build_meta OK')"
+        python3 -m pip install Unidecode pyelftools
+        
+        
+    - name: Clone source code
+      id: codes
+      if: steps.init.outputs.status == 'success' && success()
+      run: |
+        git clone --depth 1 "$REPO_URL" -b "$REPO_BRANCH" openwrt
+        if [ -n "$GITHUB_OUTPUT" ]; then
+        echo "status=success" >> "$GITHUB_OUTPUT"
+        else
+        echo "::set-output name=status::success"
+        fi
+       
+    - name: Free up disk space
+      run: |
+        sudo mkdir -p /mnt/openwrt/{dl,staging_dir,build_dir}
+        sudo chown -R $USER:$GROUPS /mnt/openwrt
+        ln -sfn /mnt/openwrt/dl openwrt/dl
+        ln -sfn /mnt/openwrt/staging_dir openwrt/staging_dir
+        ln -sfn /mnt/openwrt/build_dir openwrt/build_dir
+        df -H
+        
+    - name: Load custom feeds
+      run: |
+        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
+        chmod +x $DIY_P4_SH
+        cd openwrt
+        $GITHUB_WORKSPACE/$DIY_P4_SH
+
+    - name: Update & Install feeds
+      working-directory: ./openwrt
+      run: |
+        ./scripts/feeds update -a
+        
+        ./scripts/feeds install -a -f
+        
+
+    - name: Configuration Customization
+      run: |
+      
+        cp -fv "${CONFIG_FILE}" openwrt/.config
+        cd openwrt && make defconfig
+        
+    - name: SSH connection to Actions
+      uses: csexton/debugger-action@master
+      if: ${{ inputs.ssh || contains(github.event.action, 'ssh') }}
+      
+      
+    - name: Download package
+      working-directory: ./openwrt
+      run: |
+        make download -j4 V=s
+        find dl -size -1024c -delete
+
+    - name: 查看 openwrt 目录中的文件
+      run: ls -la openwrt/
+      
+           ls -l .config
+      
+           ls -la openwrt/.config
+
+    - name: 自动上传编译配置
+      uses: actions/upload-artifact@v4
+      with:
+       name: build-config
+       path: |
+         ${{ github.workspace }}/openwrt/.config
+         ${{ github.workspace }}/openwrt/feeds.conf.default
+       include-hidden-files: true
+
+    - name: Compile the OpenWrt
+      id: compile
+      run: |
+        cd openwrt/
+        make defconfig
+        if [[ "${{ inputs.log_switch }}" == "true" ]]; then
+            make -j1 V=s
+        else
+            make -j$(nproc)
+        fi
+        grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
+        [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
+        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+        echo "status=success" >> $GITHUB_OUTPUT
+        
+    - name: Organize files
+      id: organize
+      if: env.UPLOAD_FIRMWARE == 'true' && steps.compile.outputs.status == 'success'
+      run: |
+        cd openwrt/bin/targets/*/*
+        rm -rf packages
+        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Upload firmware directory
+      uses: actions/upload-artifact@main
+      if: steps.organize.outputs.status == 'success' && !cancelled()
+      with:
+        name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        path: ${{ env.FIRMWARE }}/*
+
+    - name: Generate release tag
+      id: tag
+      if: env.UPLOAD_RELEASE == 'true' && steps.organize.outputs.status == 'success'
+      run: |
+        echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
+        cat <<EOF > release.txt
+        🚀 OpenWrt firmware for XG_040G_MD
+        ----------------------
+        设备: XG-040G-MD
+        时间: $(date +"%Y-%m-%d %H:%M")
+        内核版本: 6.12.X
+        源码仓库: $REPO_URL
+        分支: $REPO_BRANCH
+        EOF
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Upload firmware to release
+      uses: softprops/action-gh-release@v1
+      if: steps.tag.outputs.status == 'success' && !cancelled()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag.outputs.release_tag }}
+        body_path: release.txt
+        files: ${{ env.FIRMWARE }}/*
+
+    - name: Delete workflow runs
+      uses: LeeHe-gif/delete-workflow-runs@main
+      with:
+        retain_days: 7
+        keep_minimum_runs: 5
+        token: ${{ secrets.GITHUB_TOKEN }}
