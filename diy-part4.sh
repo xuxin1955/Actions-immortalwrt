@@ -5,10 +5,10 @@
 curl -sSL https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
 
 # mode
-echo 'src-git QModem https://github.com/FUjr/QModem' >> feeds.conf.default
+# echo 'src-git QModem https://github.com/FUjr/QModem' >> feeds.conf.default
 
 # OpenClash
-git clone --depth 1 https://github.com/vernesong/OpenClash.git OpenClash
+# git clone --depth 1 https://github.com/vernesong/OpenClash.git OpenClash
 
 
 # temp
