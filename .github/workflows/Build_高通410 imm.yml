@@ -11,6 +11,15 @@ on:
         description: 'SSH connection to Actions'
         required: false
         default: 'false'
+      profile:
+        description: '选择要使用的配置文件'
+        type: choice
+        options:
+          - 8916
+          - jz02v10
+          - other_config_name
+        default: 8916
+        required: true
 
 env:
   REPO_URL: https://github.com/xuxin1955/immortalwrt
