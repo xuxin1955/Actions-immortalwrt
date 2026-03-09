@@ -16,7 +16,3 @@ git clone https://github.com/lkiuyu/luci-app-cpu-status package/luci-app-cpu-sta
 git clone https://github.com/gSpotx2f/luci-app-cpu-status-mini package/luci-app-cpu-status-mini
 git clone https://github.com/gSpotx2f/luci-app-temp-status package/luci-app-temp-status
 
-# packages
-sed -i 's|src-git packages https://github.com/immortalwrt/packages.git;openwrt-25.12|src-git packages https://github.com/xuxin1955/packages.git;openwrt-25.12|g' feeds.conf.default
-
-
