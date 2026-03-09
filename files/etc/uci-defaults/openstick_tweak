@@ -25,7 +25,7 @@ uci commit
 /etc/init.d/network restart
 
 # HACK : restart network to find modem after reboot
-echo -e '/etc/init.d/gc restart \n (sleep 25 && /etc/init.d/modemmanager restart) & \n ( procd -h /etc/hotplug-gcreboot.json> /dev/null ) & \n chmod +x /etc/init.d/auto-modem \n /etc/init.d/auto-modem enable' > /etc/rc.local
+echo -e '#!/bin/sh\n\nsleep 10\n/etc/init.d/gc restart\n(sleep 20 && /etc/init.d/modemmanager restart) &\n( procd -h /etc/hotplug-gcreboot.json > /dev/null ) &\nchmod +x /etc/init.d/auto-modem\n/etc/init.d/auto-modem enable\nchmod +x /etc/init.d/usb1.sh\nchmod +x /root/ncm.sh\nchmod +x /root/usb.sh\n/etc/init.d/usb1.sh &\nchmod +x /etc/init.d/ncm1.sh\nsleep 10 && /etc/init.d/ncm1.sh &\n' > /etc/rc.local && chmod +x /etc/rc.local
 
 # echo 'sleep 25 && /etc/init.d/network restart' > /etc/rc.local
 
