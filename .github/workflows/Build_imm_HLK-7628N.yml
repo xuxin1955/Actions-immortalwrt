@@ -1,4 +1,4 @@
-name: Build_imm_HILINK HLK-7628N
+name: Build_imm_HLK-7628N
 
 on:
   repository_dispatch:
