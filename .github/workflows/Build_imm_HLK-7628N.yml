@@ -131,7 +131,7 @@ jobs:
         cd openwrt && make defconfig
         
     - name: SSH connection to Actions
-        uses: mxschmitt/action-tmate@v3.14
+      uses: mxschmitt/action-tmate@v3.14
       if: ${{ inputs.ssh || contains(github.event.action, 'ssh') }}
       
       
