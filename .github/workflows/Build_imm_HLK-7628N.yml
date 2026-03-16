@@ -131,10 +131,8 @@ jobs:
         cd openwrt && make defconfig
         
     - name: SSH 调试有效时间60分钟! 连接后输入q 终端输入exit即可退出，自动继续后续编译流程
-      uses: mxschmitt/action-tmate@v3.14
+      uses: mxschmitt/action-tmate/detached@v3.23
       if: ${{ inputs.ssh || contains(github.event.action, 'ssh') }}
-      with:
-        timeout-minutes: 60
 
       
       
@@ -208,18 +206,31 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release
-      uses: softprops/action-gh-release@v2.6.1
+      uses: ncipollo/release-action@v1
       if: steps.tag.outputs.status == 'success' && !cancelled()
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.tag.outputs.release_tag }}
-        body_path: release.txt
-        files: ${{ env.FIRMWARE }}/*
+        tag: ${{ steps.tag.outputs.release_tag }}
+        bodyFile: release.txt
+        artifacts: ${{ env.FIRMWARE }}/**
+        allowUpdates: true
+        draft: false
+        prerelease: false
 
-    - name: Delete workflow runs
-      uses: Mattraks/delete-workflow-runs@v2
-      with:
-        retain_days: 7
-        keep_minimum_runs: 5
-        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Delete old workflow runs via GitHub API
+      if: always()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        RUNS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/runs?per_page=100")
+        CUTOFF=$(date -d "-7 days" +%s)
+        echo "$RUNS" | jq -r --arg cutoff "$CUTOFF" '
+          .workflow_runs[]
+          | select((now - (.created_at | fromdateiso8601)) > ($cutoff | tonumber))
+          | .id' | while read run_id; do
+            echo "Deleting run $run_id"
+            curl -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id"
+        done
