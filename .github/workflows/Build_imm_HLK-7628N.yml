@@ -130,7 +130,7 @@ jobs:
         cp -fv "${CONFIG_FILE}" openwrt/.config
         cd openwrt && make defconfig
         
-    - name: SSH connection to Actions
+    - name:（SSH 调试有效时间60分钟! 连接后输入q）（终端输入exit即可退出，自动继续后续编译流程）
       uses: mxschmitt/action-tmate@v3.14
       if: ${{ inputs.ssh || contains(github.event.action, 'ssh') }}
       with:
@@ -144,14 +144,14 @@ jobs:
         make download -j4 V=s
         find dl -size -1024c -delete
 
-    - name: 查看 openwrt 目录中的文件
+    - name: 查看 openwrt 目录
       run: ls -la openwrt/
       
            ls -l .config
       
            ls -la openwrt/.config
 
-    - name: 自动上传编译配置
+    - name: 自动上传最新源码生成.config编译配置
       uses: actions/upload-artifact@v7
       with:
        name: build-config
