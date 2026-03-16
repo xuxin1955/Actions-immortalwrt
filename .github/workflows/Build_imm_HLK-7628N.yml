@@ -134,7 +134,7 @@ jobs:
       uses: mxschmitt/action-tmate@v3.14
       if: ${{ inputs.ssh || contains(github.event.action, 'ssh') }}
       with:
-      timeout-minutes: 60
+        timeout-minutes: 60
 
       
       
