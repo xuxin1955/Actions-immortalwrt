@@ -13,7 +13,7 @@ on:
         default: false
         type: boolean
       profile:
-        description: '选择要使用的配置文件'
+        description: '选择要使用的机型配置文件'
         type: choice
         options:
           - jz02v10
