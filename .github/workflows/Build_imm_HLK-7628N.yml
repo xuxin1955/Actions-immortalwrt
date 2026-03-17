@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       ssh:
-        description: 'SSH connection to Actions'
+        description: ' ← 选择是否开启 SSH 调试专业人员使用'
         required: false
         default: false
         type: boolean
