@@ -8,12 +8,12 @@ on:
   workflow_dispatch:
     inputs:
       ssh:
-        description: '选择是否开启 SSH 调试专业人员使用'
+        description: ' ← 选择是否开启 SSH 调试专业人员使用'
         required: false
         default: false
         type: boolean
       profile:
-        description: '选择要使用的机型配置文件'
+        description: '支持多款型号 手动选择要编译的机型配置文件↓'
         type: choice
         options:
           - jz02v10
