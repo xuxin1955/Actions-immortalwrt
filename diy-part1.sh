@@ -27,6 +27,6 @@ cp -f "$GITHUB_WORKSPACE/dts/mt7628an_hilink_hlk-7628n.dts" target/linux/ramips/
 
 
 # turboacc
-curl -sSL https://github.com/xuxin1955/turboacc/raw/main/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
+
 
 
