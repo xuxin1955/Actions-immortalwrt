@@ -38,12 +38,16 @@ jobs:
         chmod 755 ./scripts/show_hardware_info.sh
         ./scripts/show_hardware_info.sh
 
-    - name: Free disk space
+    - name: Free Disk Space (Ubuntu)
       uses: jlumbroso/free-disk-space@main
       with:
-        tool-cache: true
+        tool-cache: false
         android: false
         dotnet: false
+        haskell: false
+        large-packages: false
+        docker-images: false
+        swap-storage: true
 
     - name: space usage check  
       run: |
