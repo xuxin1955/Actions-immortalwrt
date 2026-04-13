@@ -15,13 +15,14 @@ on:
         default: false
         type: boolean
       source_select:
-        description: '选择编译源码'
+        description: ' ↓ 支持两种源码 手动选择要编译的源码 ↓ '
         required: false
-        default: 'bingoguo93'
+        default: 'immortalwrt'
         type: choice
         options:
-        - xiangtailiang
-        - bingoguo93
+        - immortalwrt
+        - openwrt
+       
 env:
   FEEDS_CONF: feeds.conf.default
   DIY_P4_SH: diy-part4.sh
@@ -61,7 +62,7 @@ jobs:
       run: |
         if [[ "${{ github.event.inputs.source_select }}" == "bingoguo93" ]]; then
            echo "REPO_URL=https://github.com/bingoguo93/immortalwrt" >> $GITHUB_ENV
-           echo "REPO_BRANCH=main" >> $GITHUB_ENV
+           echo "REPO_BRANCH=openwrt-25.12" >> $GITHUB_ENV
            echo "CONFIG_FILE=config/040.config" >> $GITHUB_ENV
           else
            echo "REPO_URL=https://github.com/xiangtailiang/openwrt" >> $GITHUB_ENV
