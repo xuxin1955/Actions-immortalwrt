@@ -42,8 +42,8 @@ jobs:
       uses: jlumbroso/free-disk-space@main
       with:
         tool-cache: true
-        android: true
-        dotnet: true
+        android: false
+        dotnet: false
 
     - name: space usage check  
       run: |
