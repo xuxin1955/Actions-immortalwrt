@@ -18,7 +18,7 @@ on:
 env:
   CONFIG_FILE: 'config/hlk7628n.config'
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  REPO_BRANCH: openwrt-25.12
+  REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   DIY_P3_SH: diy-part3.sh
   UPLOAD_FIRMWARE: true
