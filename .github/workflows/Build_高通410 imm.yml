@@ -73,6 +73,9 @@ jobs:
       run: |
         sudo -E apt-get -y update
         sudo -E apt-get -y install $(curl -fsSL https://raw.githubusercontent.com/xuxin1955/depend_ubuntu2204_openwrt/refs/heads/main/depend_ubuntu2204_openwrt)
+
+    - name: mkbootimg build
+      run: |
         wget https://github.com/xuxin1955/depend_ubuntu2204_openwrt/releases/download/ubuntu_26.04_LTS_mkbootimg/mkbootimg_34.0.5-12build1_all.deb
         sudo dpkg -i mkbootimg_34.0.5-12build1_all.deb
         sudo apt-get install -f -y
@@ -225,7 +228,7 @@ jobs:
         echo "🔗 GoFile" >> release.txt
         fi
         echo "## Immortalwrt24.10 高通410系列" >> release.txt
-        echo "- 管理地址:192.168.1.1" >> release.txt
+        echo "- 管理地址:192.168.100.1" >> release.txt
         echo "  内核版本: 6.12.X" >> release.txt
         echo "  默认用户:root" >> release.txt
         echo "  默认密码:空" >> release.txt
