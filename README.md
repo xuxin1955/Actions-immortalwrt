@@ -81,3 +81,4 @@ Bus 001 Device 015: ID 3625:0110 AICSemi AIC8800DC
 ## License
 
 [MIT](https://github.com/P3TERX/Actions-OpenWrt/blob/main/LICENSE) © [**P3TERX**](https://p3terx.com)
+
