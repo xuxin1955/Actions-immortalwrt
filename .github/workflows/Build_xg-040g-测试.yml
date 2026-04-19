@@ -75,18 +75,6 @@ jobs:
            echo "REPO_BRANCH=$REPO_REF" >> $GITHUB_ENV
 
 
-
-
-
-      - name: Check remote branch for new commits
-        id: check_commit
-        run: |
-          LATEST_COMMIT=$(git ls-remote ${{ env.REPO_URL }} ${{ env.REPO_BRANCH }} | awk '{print $1}')
-          echo "LATEST_COMMIT=$LATEST_COMMIT" >> $GITHUB_ENV
-          echo "should_build=true" >> $GITHUB_OUTPUT
-
-
-
       - name: Initialization environment
         id: init
         env:
