@@ -244,9 +244,9 @@ jobs:
           echo ""
           echo "### 主要插件"
           echo "#### luci-app 系列"
-          find openwrt/bin/packages -name "luci-app-*.ipk" | sed 's|.*/||' | cut -d_ -f1 | sort | sed 's/^/- /'
+          grep -h "luci-app-" ${{ env.FIRMWARE }}/*.manifest 2>/dev/null | awk -F':' '{print $NF}' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -oP 'luci-app-[a-zA-Z0-9_-]+' | sort -u | sed 's/^/- /'
           echo "#### kmod-usb 系列"
-          find openwrt/bin/packages -name "kmod-usb*.ipk" | sed 's|.*/||' | cut -d_ -f1 | sort | sed 's/^/- /'
+          grep -h "kmod-usb-" ${{ env.FIRMWARE }}/*.manifest 2>/dev/null | awk -F':' '{print $NF}' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -oP 'kmod-usb-[a-zA-Z0-9_-]+' | sort -u | sed 's/^/- /'
         } >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
