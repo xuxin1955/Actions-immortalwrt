@@ -238,7 +238,7 @@ jobs:
         {
           echo "## Immortalwrt master分支 高通410系列"
           echo "- 管理地址: 192.168.100.1"
-          echo "  内核版本: ${{ env.KERNEL_VER }}"
+          echo "  内核版本: $(grep -h "kmod-usb2" ${{ env.FIRMWARE }}/*.manifest 2>/dev/null | awk -F' - ' '{print $2}' | grep -oP '6\.[0-9]+\.[0-9]+' | head -1 || echo '未知')"
           echo "  默认用户: root"
           echo "  默认密码: 空"
           echo ""
