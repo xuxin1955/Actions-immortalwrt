@@ -242,18 +242,23 @@ jobs:
 
       - name: Generate release tag and notes
         id: tag
-        if: env.UPLOAD_RELEASE == 'true'
+        if: env.UPLOAD_RELEASE == 'true' && !cancelled()
         run: |
           echo "release_tag=$(date +"%Y.%m.%d-%H%M%S")" >> $GITHUB_OUTPUT
-          cat <<EOF > release.txt
-          🚀 XG-040G-MD 固件构建测试
-          ----------------------
-          设备型号: XG-040G-MD
-          构建时间: $(date +"%Y-%m-%d %H:%M")
-          源码仓库: ${{ env.REPO_URL }}
-          分支/Tag: ${{ env.BUILD_REF }}
-          使用补丁: ${{ env.SELECTED_PATCH }}
-          EOF
+          echo "🚀 XG-040G-MD 固件构建测试" >> release.txt
+          echo "----------------------" >> release.txt
+          echo "设备型号: XG-040G-MD" >> release.txt
+          echo "构建时间: $(date +"%Y-%m-%d %H:%M")" >> release.txt
+          echo "内核版本: $(grep -h "kmod-usb2" ${{ env.FIRMWARE }}/*.manifest 2>/dev/null | awk -F' - ' '{print $2}' | grep -oP '6\.[0-9]+\.[0-9]+' | head -1 || echo '未知')" >> release.txt
+          echo "源码仓库: ${{ env.REPO_URL }}" >> release.txt
+          echo "分支/Tag: ${{ env.BUILD_REF }}" >> release.txt
+          echo "使用补丁: ${{ env.SELECTED_PATCH }}" >> release.txt
+          echo "" >> release.txt
+          echo "### 主要插件" >> release.txt
+          echo "#### luci-app 系列" >> release.txt
+          grep -h "luci-app-" ${{ env.FIRMWARE }}/*.manifest 2>/dev/null | awk -F':' '{print $NF}' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -oP 'luci-app-[a-zA-Z0-9_-]+' | sort -u | sed 's/^/- /' >> release.txt
+          echo "status=success" >> $GITHUB_OUTPUT
+
 
       - name: Publish GitHub Release
         uses: ncipollo/release-action@v1
