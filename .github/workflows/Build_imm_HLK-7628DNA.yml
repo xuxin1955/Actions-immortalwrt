@@ -17,7 +17,7 @@ on:
 
 env:
   CONFIG_FILE: 'config/hlk7628dna.config'
-  REPO_URL: https://github.com/xuxin1955/immortalwrt
+  REPO_URL: https://github.com/immortalwrt/immortalwrt
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   DIY_P6_SH: diy-part6.sh
@@ -143,7 +143,14 @@ jobs:
       uses: mxschmitt/action-tmate@master
       if: ${{ inputs.ssh || contains(github.event.action, 'ssh') }}
       
-      
+    - name: 自动上传最新源码生成.config编译配置
+      uses: actions/upload-artifact@main
+      with:
+       name: build-config
+       path: |
+         ${{ github.workspace }}/openwrt/.config
+         ${{ github.workspace }}/openwrt/feeds.conf.default
+       include-hidden-files: true      
       
     - name: Download package
       working-directory: ./openwrt
@@ -157,15 +164,6 @@ jobs:
            ls -l .config
       
            ls -la openwrt/.config
-
-    - name: 自动上传最新源码生成.config编译配置
-      uses: actions/upload-artifact@main
-      with:
-       name: build-config
-       path: |
-         ${{ github.workspace }}/openwrt/.config
-         ${{ github.workspace }}/openwrt/feeds.conf.default
-       include-hidden-files: true
 
     - name: Compile the OpenWrt
       id: compile
