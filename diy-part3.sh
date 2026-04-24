@@ -10,4 +10,4 @@ cp -f "$GITHUB_WORKSPACE/scripts/dts/mt7628an_hilink_hlk-7628n.dts" "target/linu
 
 
 # turboacc
-# curl -sSL https://raw.githubusercontent.com/mufeng05/turboacc/main/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
+curl -sSL https://raw.githubusercontent.com/mufeng05/turboacc/main/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
