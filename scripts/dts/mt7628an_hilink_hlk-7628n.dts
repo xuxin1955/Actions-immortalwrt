@@ -106,6 +106,10 @@
 	nvmem-cell-names = "mac-address";
 };
 
+&esw {
+	mediatek,portmap = <0x3e>;
+};
+
 &wmac {
 	status = "okay";
 
