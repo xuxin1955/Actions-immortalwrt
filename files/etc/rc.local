@@ -1,0 +1,4 @@
+#!/bin/sh -e
+sleep 10
+iw reg set CN
+exit 0
