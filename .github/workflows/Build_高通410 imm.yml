@@ -124,13 +124,18 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH
         
+    - name: Update feeds (force latest)
+      run: |
+        cd openwrt
+        ./scripts/feeds clean
+        rm -rf feeds
+        ./scripts/feeds update -a --force
+        ./scripts/feeds install -a -f
 
-    - name: Update feeds
-      run: cd openwrt && ./scripts/feeds update -a
+        echo "📌 Latest packages feed commit:"
+        git -C feeds/packages log -1 --oneline
 
-    - name: Install feeds
-      run: cd openwrt && ./scripts/feeds install -a -f
-
+        
     - name: Load custom DIY_P2_SH
       run: |
         [ -e files ] && mv files openwrt/files
@@ -166,17 +171,25 @@ jobs:
          ${{ github.workspace }}/openwrt/.config
          ${{ github.workspace }}/openwrt/feeds.conf.default
        include-hidden-files: true
-      
-       
+
+    - name: Cache dl
+      id: cache-dl
+      uses: actions/cache@v5
+      with:
+        path: openwrt/dl
+        key: dl-${{ runner.os }}-${{ hashFiles('openwrt/feeds.conf.default') }}
+        restore-keys: |
+          dl-${{ runner.os }}-
+
     - name: Download package
-      id: package
       run: |
+        [ "${{ steps.cache-dl.outputs.cache-hit }}" = "true" ] && echo "✅ dl cache hit" || echo "⚠️ dl cache miss"
+
         cd openwrt
-        make download -j4 V=s
+        make download -j$(nproc) V=s
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
-
-        
+       
     - name: Compile the firmware
       id: compile
       run: |
