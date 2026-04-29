@@ -124,12 +124,14 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH
         
-    - name: Update feeds (force latest)
+    - name: Update feeds
       run: |
         cd openwrt
+
         ./scripts/feeds clean
         rm -rf feeds
-        ./scripts/feeds update -a --force
+
+        ./scripts/feeds update -a
         ./scripts/feeds install -a -f
 
         echo "📌 Latest packages feed commit:"
