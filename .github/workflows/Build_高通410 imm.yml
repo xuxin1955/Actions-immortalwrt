@@ -208,13 +208,44 @@ jobs:
           echo "$output" | grep -A10 -B5 "$pkg" || true
         done
 
+    - name: Cache ccache
+      uses: actions/cache@v5
+      with:
+        path: ~/.ccache
+        key: ccache-${{ runner.os }}-${{ hashFiles('openwrt/.config') }}
+        restore-keys: |
+          ccache-${{ runner.os }}-
+
+
+    - name: Cache toolchain
+      uses: actions/cache@v5
+      with:
+        path: |
+          openwrt/staging_dir/toolchain-*
+          openwrt/build_dir/host
+          openwrt/build_dir/toolchain-*
+        key: toolchain-${{ runner.os }}-${{ hashFiles('openwrt/.config') }}
+        restore-keys: |
+          toolchain-${{ runner.os }}-
        
     - name: Compile the firmware
       id: compile
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
-        make -j$(nproc) || make -j1 V=s
+
+        export CCACHE_DIR=~/.ccache
+        export CCACHE_MAXSIZE=50%
+        export CCACHE_COMPILERCHECK=content
+        export CCACHE_BASEDIR=$PWD
+        mkdir -p $CCACHE_DIR
+
+        make -j$(nproc) CC="ccache gcc" CXX="ccache g++" 2>&1 | tee build.log || \
+        make -j1 V=s CC="ccache gcc" CXX="ccache g++" 2>&1 | tee build.log
+
+        echo "✅ ccache 统计："
+        ccache -s
+
         echo "status=success" >> $GITHUB_OUTPUT
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
