@@ -186,7 +186,6 @@ jobs:
           
       - name: remove warning
         run: |
-          cd openwrt
           chmod 755 ./scripts/diy-part.sh
           ./scripts/diy-part.sh
 
