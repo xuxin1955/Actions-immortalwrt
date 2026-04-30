@@ -208,7 +208,7 @@ jobs:
 
     - name: Download package
       run: |
-        if [[ "${{ steps.cache-dl.outputs.cache-hit }}" == "true" ]]; then
+        if [ "${{ steps.cache-dl.outputs.cache-hit }}" = "true" ]; then
           echo "✅ dl cache hit"
         else
           echo "⚠️ dl cache miss"
