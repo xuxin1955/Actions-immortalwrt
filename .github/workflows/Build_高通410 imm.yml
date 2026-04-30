@@ -264,7 +264,7 @@ jobs:
         echo -e "$(nproc) thread compile"
 
         export CCACHE_DIR=~/.ccache
-        export CCACHE_MAXSIZE=50%
+        export CCACHE_MAXSIZE=10G
         export CCACHE_COMPILERCHECK=content
         export CCACHE_BASEDIR=$PWD
         mkdir -p $CCACHE_DIR
