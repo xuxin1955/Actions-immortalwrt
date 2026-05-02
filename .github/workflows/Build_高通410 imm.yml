@@ -1,11 +1,9 @@
-#
-#
-
 name: Build_imm_高通410系列
 
 on:
   repository_dispatch:
   workflow_dispatch:
+    description: ' 工作流已开启 ccache 缓存加速，二次重复编译速度更快 '
     inputs:
       ssh:
         description: ' ← 选择是否开启 SSH 调试专业人员使用'
@@ -31,6 +29,38 @@ on:
           - sp970v10
         default: jz02v10
         required: true
+
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    description: '✅ 本工作流已开启 ccache 缓存加速，重复编译速度更快 🚀'
+    inputs:
+      ssh:
+        description: ' ← 选择是否开启 SSH 调试专业人员使用'
+        required: false
+        default: false
+        type: boolean
+      profile:
+        description: ' ↓ 支持多款型号 手动选择要编译的机型 ↓ '
+        type: choice
+        options:
+          - jz02v10
+          - ufi001c
+          - ufi001b
+          - ufi103s
+          - qrzl903
+          - w001
+          - ufi003
+          - uz801
+          - mf32
+          - mf601
+          - wf2
+          - sp970v11
+          - sp970v10
+        default: jz02v10
+        required: true
+
 
 env:
   REPO_URL: https://github.com/xuxin1955/immortalwrt
