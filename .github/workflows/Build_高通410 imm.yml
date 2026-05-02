@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       info:
-        description: ' 已开启 ccache 缓存加速 '
+        description: ' 已开启 ccache cache-dl 缓存加速 '
         required: false
         default: '不改配置二次编译速度大幅提升'
         type: string
