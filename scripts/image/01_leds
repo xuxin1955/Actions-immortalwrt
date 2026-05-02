@@ -60,11 +60,11 @@ glinet,gl-mt300n-v2)
 	;;
 hilink,hlk-7628n|\
 skylab,skw92a)
-	ucidef_set_led_netdev "wifi_led" "wifi" "mt76-phy0" "br-lan"
+	ucidef_set_led_netdev "wifi_led" "wifi" "mt76-phy0" "phy1-ap0"
 	;;
 hilink,hlk-7628d|\
 skylab,skw92a)
-	ucidef_set_led_netdev "wifi_led" "wifi" "mt76-phy0" "br-lan"
+	ucidef_set_led_netdev "wifi_led" "wifi" "mt76-phy0" "phy1-ap0"
 	;;
 hilink,hlk-7688a)
 	ucidef_set_led_wlan "wlan" "WLAN" "green:wlan" "phy0tpt"
