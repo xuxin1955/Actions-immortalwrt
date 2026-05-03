@@ -7,6 +7,8 @@ sed -i 's/192.168.1.1/192.168.100.1/g' package/base-files/files/bin/config_gener
 # Modify default theme
 sed -i 's/luci-theme-material/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
+# reg set CN
+echo -e "#!/bin/sh -e\n\nsleep 10\niw reg set CN\n\nexit 0" > package/base-files/files/etc/rc.local
 
 # temp
 git clone https://github.com/lkiuyu/luci-app-cpu-perf package/luci-app-cpu-perf
