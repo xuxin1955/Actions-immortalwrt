@@ -14,7 +14,7 @@ cp -f "$GITHUB_WORKSPACE/scripts/dts/mt7628an_hilink_hlk-7628n.dts" "target/linu
 
 # hlk7628n (LEDs)
 mkdir -p package/kernel/mt76/
-cp -f "$GITHUB_WORKSPACE/scripts/image/mt76-Makefile" "package/kernel/mt76/Makefile"
+cp -f "$GITHUB_WORKSPACE/scripts/image/Makefile" "package/kernel/mt76/Makefile"
 
 # turboacc
 # curl -sSL https://raw.githubusercontent.com/mufeng05/turboacc/main/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
