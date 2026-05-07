@@ -1,0 +1,235 @@
+name: Build_高通410-测试
+
+permissions:
+  contents: write
+  actions: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: ' ← 选择是否开启 SSH 调试专业人员使用'
+        required: false
+        default: false
+        type: boolean
+      log_switch:
+        description: "Build logs"
+        required: false
+        default: false
+        type: boolean
+      patch_type:
+        description: "选择补丁版本"
+        required: true
+        default: "patch-msm89xx"
+        type: choice
+        options:
+          - patch-msm89xx
+
+
+
+
+env:
+  CONFIG_FILE: "config/040.config"
+  REPO_URL: https://github.com/istoreos/istoreos
+  REPO_BRANCH: istoreos-24.10
+  FEEDS_CONF: feeds.conf.default
+  DIY_P5_SH: diy-part5.sh
+  UPLOAD_FIRMWARE: true
+  UPLOAD_RELEASE: true
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+
+      - name: Initialization environment
+        id: init
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo -E apt-get -y update
+          sudo -E apt-get -y install --no-install-recommends $(curl -fsSL https://raw.githubusercontent.com/xuxin1955/depend_ubuntu2204_openwrt/refs/heads/main/depend_ubuntu2204_openwrt)
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: mkbootimg build
+        run: |
+          wget https://github.com/xuxin1955/depend_ubuntu2204_openwrt/releases/download/ubuntu_26.04_LTS_mkbootimg/mkbootimg_34.0.5-12build1_all.deb
+          sudo dpkg -i mkbootimg_34.0.5-12build1_all.deb
+          sudo apt-get install -f -y
+          # 验证安装
+          mkbootimg --help || true
+          MKBOOTIMG_PATH=$(which mkbootimg)
+          if [ -n "$MKBOOTIMG_PATH" ]; then
+          echo "mkbootimg found at: $MKBOOTIMG_PATH"
+          file "$MKBOOTIMG_PATH"
+          else
+          echo "❌ mkbootimg not found in PATH!"
+          fi
+        
+          sudo timedatectl set-timezone "${TZ}"
+          
+
+      - name: Ensure Python build tools
+        run: |
+          python3 -m pip install --upgrade pip setuptools wheel
+          python3 -m pip install Unidecode
+
+      - name: Clone source code
+        id: codes
+        if: steps.init.outputs.status == 'success' && success()
+        run: |
+          git clone --depth 1 -b "$REPO_BRANCH" "$REPO_URL" openwrt
+          cd openwrt
+          git log --oneline -1
+          echo "status=success" >> "$GITHUB_OUTPUT"
+
+      - name: Apply Patch
+        run: |
+          SELECTED_PATCH="${{ github.event.inputs.patch_type }}"
+          PATCH_DIR="scripts/$SELECTED_PATCH"
+
+          if [ -d "$PATCH_DIR" ] && [ -f "$PATCH_DIR/patch.sh" ]; then
+              echo "--- 正在应用补丁：$SELECTED_PATCH ---"
+              chmod +x "$PATCH_DIR/patch.sh"
+              bash "$PATCH_DIR/patch.sh"
+              echo "--- 补丁应用成功 ---"
+          else
+              echo "错误: 未找到 $PATCH_DIR"
+              exit 1
+          fi
+
+
+
+      - name: Free up disk space
+        run: |
+          sudo mkdir -p /mnt/openwrt/{dl,staging_dir,build_dir}
+          sudo chown -R $USER:$GROUPS /mnt/openwrt
+          ln -sfn /mnt/openwrt/dl openwrt/dl
+          ln -sfn /mnt/openwrt/staging_dir openwrt/staging_dir
+          ln -sfn /mnt/openwrt/build_dir openwrt/build_dir
+          df -H
+
+      - name: Load custom DIY_P5_SH
+        run: |
+          [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
+          chmod +x $DIY_P5_SH
+          cd openwrt
+          $GITHUB_WORKSPACE/$DIY_P5_SH
+
+      - name: Update & Install feeds
+        working-directory: ./openwrt
+        run: |
+          ./scripts/feeds update -a
+        
+          ./scripts/feeds install -a -f
+          
+          
+      - name: remove warning
+        run: |
+          chmod 755 $GITHUB_WORKSPACE/scripts/diy-part.sh
+          $GITHUB_WORKSPACE/scripts/diy-part.sh
+
+      - name: Configuration Customization
+        run: |
+          cp -fv "${CONFIG_FILE}" openwrt/.config
+          cd openwrt && make defconfig
+           
+      - name: SSH 调试有效时间6h! 连接后输入q 输入exit即可退出，自动继续后续编译流程
+        uses: mxschmitt/action-tmate@master
+        if: ${{ inputs.ssh || contains(github.event.action, 'ssh') }}
+
+      - name: 查看 openwrt 目录
+        run: ls -la openwrt/
+      
+             ls -l .config
+      
+             ls -la openwrt/.config
+
+      - name: 自动上传最新源码生成.config编译配置
+        uses: actions/upload-artifact@main
+        with:
+         name: build-config
+         path: |
+           ${{ github.workspace }}/openwrt/.config
+           ${{ github.workspace }}/openwrt/feeds.conf.default
+         include-hidden-files: true
+
+      - name: Download packages
+        working-directory: ./openwrt
+        run: |
+          make download -j$(nproc) V=s
+          find dl -size -1024c -delete
+
+      - name: Compile OpenWrt firmware
+        id: compile
+        run: |
+          cd openwrt
+          if [[ "${{ inputs.log_switch }}" == "true" ]]; then
+            make -j1 V=s
+          else
+            make -j$(nproc) || make -j4 V=s
+          fi
+          
+          DEVICE_NAME=$(grep -o 'CONFIG_TARGET.*DEVICE_[^=]*=y' .config | head -1 | sed 's/.*DEVICE_\(.*\)=y/\1/')
+          [ -n "$DEVICE_NAME" ] && echo "DEVICE_NAME=_$DEVICE_NAME" >> $GITHUB_ENV
+          echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+
+      - name: Organize firmware artifacts
+        if: env.UPLOAD_FIRMWARE == 'true'
+        run: |
+          cd openwrt/bin/targets/*/*
+          rm -rf packages
+          echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+
+      - name: Upload firmware to Artifacts
+        uses: actions/upload-artifact@v6
+        if: env.UPLOAD_FIRMWARE == 'true'
+        with:
+          name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+          path: ${{ env.FIRMWARE }}/*
+
+      - name: Generate release tag and notes
+        id: tag
+        if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+        run: |
+          echo "release_tag=$(date +"%Y.%m.%d-%H%M%S")" >> $GITHUB_OUTPUT
+          echo "🚀 高通410 固件构建测试" >> release.txt
+          echo "----------------------" >> release.txt
+          echo "设备型号: " >> release.txt
+          echo "构建时间: $(date +"%Y-%m-%d %H:%M")" >> release.txt
+          echo "内核版本: $(grep -h "kmod-usb2" ${{ env.FIRMWARE }}/*.manifest 2>/dev/null | awk -F' - ' '{print $2}' | grep -oP '6\.[0-9]+\.[0-9]+' | head -1 || echo '未知')" >> release.txt
+          echo "源码仓库: ${{ env.REPO_URL }}" >> release.txt
+          echo "分支/Tag: ${{ env.BUILD_REF }}" >> release.txt
+          echo "使用补丁: ${{ env.SELECTED_PATCH }}" >> release.txt
+          echo "管理地址: 192.168.100.1" >> release.txt
+          echo "登录账号: root" >> release.txt
+          echo "密码: 无" >> release.txt
+          echo "" >> release.txt
+          echo "### 主要插件" >> release.txt
+          echo "#### luci-app 系列" >> release.txt
+          grep -h "luci-app-" ${{ env.FIRMWARE }}/*.manifest 2>/dev/null | awk -F':' '{print $NF}' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -oP 'luci-app-[a-zA-Z0-9_-]+' | sort -u | sed 's/^/- /' >> release.txt
+          echo "status=success" >> $GITHUB_OUTPUT
+
+
+      - name: Publish GitHub Release
+        uses: ncipollo/release-action@v1
+        if: env.UPLOAD_RELEASE == 'true'
+        with:
+          tag: ${{ steps.tag.outputs.release_tag }}
+          bodyFile: release.txt
+          artifacts: "${{ env.FIRMWARE }}/*"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 7
+          keep_minimum_runs: 5
