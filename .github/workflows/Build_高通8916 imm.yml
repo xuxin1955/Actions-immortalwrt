@@ -209,6 +209,7 @@ jobs:
         restore-keys: |
           dl-${{ runner.os }}-
 
+
     - name: Download package
       run: |
         if [[ "${{ steps.cache-dl.outputs.cache-hit }}" == "true" ]]; then
@@ -220,22 +221,18 @@ jobs:
         cd openwrt
 
         echo "⬇️ Downloading..."
-        echo "⏱️ Started at: $(date '+%Y-%m-%d %H:%M:%S')"
+        output=$(make download -j$(nproc) -k V=s 2>&1)
 
-        make download -j$(nproc) -k V=s 2>&1 | tee download.log
-
-        echo "✅ Finished at: $(date '+%Y-%m-%d %H:%M:%S')"
-
-        if grep -qE "Hash verification failed|checksum mismatch|MD5.*mismatch|sha256sum.*WARNING" download.log; then
+        if echo "$output" | grep -qE "Hash verification failed|checksum mismatch|MD5.*mismatch|sha256sum.*WARNING"; then
           echo "❌ Failed packages and their logs:"
-          grep -E "Hash verification failed|checksum mismatch|MD5.*mismatch|sha256sum.*WARNING" download.log
+          echo "$output" | grep -E "Hash verification failed|checksum mismatch|MD5.*mismatch|sha256sum.*WARNING"
           echo ""
           echo "Detailed logs:"
-          grep -E "Hash verification failed|checksum mismatch" download.log | sed 's/.*failed for //;s/.*mismatch //' | while read f; do
+          echo "$output" | grep -E "Hash verification failed|checksum mismatch" | sed 's/.*failed for //;s/.*mismatch //' | while read f; do
             pkg=$(basename "$f" | sed 's/\.[^.]*$//')
             echo ""
             echo "🔍 $pkg (file: $(basename "$f"))"
-            grep -A10 -B5 "$pkg" download.log || true
+            echo "$output" | grep -A10 -B5 "$pkg" || true
           done
         fi
       shell: bash
@@ -262,7 +259,7 @@ jobs:
           openwrt/staging_dir/host
           openwrt/build_dir/host
           openwrt/build_dir/toolchain-*
-        key: toolchain-${{ runner.os }}-v1
+        key: toolchain-${{ runner.os }}-v2
         restore-keys: |
           toolchain-${{ runner.os }}-
 
