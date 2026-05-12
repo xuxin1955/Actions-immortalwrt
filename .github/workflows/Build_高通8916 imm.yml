@@ -181,36 +181,23 @@ jobs:
     - name: make defconfig
       run: |
         cd openwrt
-        
-        grep "^CONFIG_PACKAGE_" .config | grep "=y" | sed 's/CONFIG_PACKAGE_//;s/=y//' | sort > user_selected.txt
-        
-        make defconfig
-        
-        grep "^CONFIG_PACKAGE_" .config | grep "=y" | sed 's/CONFIG_PACKAGE_//;s/=y//' | sort > full_list.txt
-        
-        comm -13 user_selected.txt full_list.txt > auto_selected.txt
-        
-        echo "::group::📊 全量依赖追溯报告"
+
+        cp .config .config.before 2>/dev/null || touch .config.before
+
+        make defconfig V=s
+
+        echo "::group::📋 defconfig 实际变更"
         echo "======================================================================================"
-        printf "%-40s | %s\n" "[自动新增的依赖包]" "[可能的来源]"
-        echo "--------------------------------------------------------------------------------------"
-        
-        while read -r pkg; do
-          SOURCES=$(grep -B 30 -E "select PACKAGE_$pkg|depends on PACKAGE_$pkg" tmp/.config-package.in 2>/dev/null | grep "config PACKAGE_" | sed 's/.*PACKAGE_//' | sort -u | tr '\n' ' ')
-          
-          if [ -n "$SOURCES" ]; then
-            printf "➕ %-38s <--- %s\n" "$pkg" "$SOURCES"
-          else
-            printf "➕ %-38s <--- [系统底层/内核]\n" "$pkg"
-          fi
-        done < auto_selected.txt
-        
+        diff .config.before .config || echo "（无变更）"
         echo "======================================================================================"
-        echo "自动选中包总数: $(wc -l < auto_selected.txt)"
         echo "::endgroup::"
 
-
-
+        echo "::group::📦 当前 .config 已启用包列表"
+        echo "======================================================================================"
+        grep "^CONFIG_PACKAGE_.*=y" .config | sed 's/CONFIG_PACKAGE_//;s/=y//' | sort
+        echo "======================================================================================"
+        echo "总计: $(grep -c '^CONFIG_PACKAGE_.*=y' .config) 个包"
+        echo "::endgroup::"
 
 
        
