@@ -419,5 +419,3 @@ jobs:
           done
         fi
         
-    - name: Force exit
-      run: exit 0
