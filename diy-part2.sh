@@ -16,8 +16,4 @@ git clone https://github.com/gSpotx2f/luci-app-temp-status package/luci-app-temp
 # DbusSmsForwardCPlus
 git clone https://github.com/lkiuyu/DbusSmsForwardCPlus package/DbusSmsForwardCPlus
 
-# luci-app-mmconfig
-git clone https://github.com/xuxin1955/luci-app-mmconfig package/luci-app-mmconfig
-
-
 
