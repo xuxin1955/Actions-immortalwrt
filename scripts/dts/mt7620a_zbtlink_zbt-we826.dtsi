@@ -19,10 +19,10 @@
 			linux,code = <KEY_RESTART>;
 		};
 
-		wps {
-			label = "wps";
-			gpios = <&gpio0 17 GPIO_ACTIVE_LOW>;
-			linux,code = <KEY_WPS_BUTTON>;
+		uboot {
+			label = "uboot";
+			gpios = <&gpio0 1 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
 		};
 	};
 };
@@ -99,13 +99,6 @@
 &wmac {
 	nvmem-cells = <&eeprom_factory_0>;
 	nvmem-cell-names = "eeprom";
-};
-
-&state_default {
-	default {
-		groups = "i2c", "uartf", "wled", "nd_sd", "spi refclk";
-		function = "gpio";
-	};
 };
 
 &sdhci {
