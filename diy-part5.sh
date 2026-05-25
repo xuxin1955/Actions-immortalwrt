@@ -4,7 +4,8 @@
 sed -i 's/192.168.1.1/192.168.100.1/g' package/base-files/files/bin/config_generate
 
 # luci-theme-aurora
-cd /tmp && uclient-fetch -O luci-theme-aurora.apk https://github.com/eamonxg/luci-theme-aurora/releases/latest/download/luci-theme-aurora-0.11.0-r20260208.apk && apk add --allow-untrusted luci-theme-aurora.apk
+git clone https://github.com/eamonxg/luci-theme-aurora package/luci-theme-aurora
+
 
 # hlk7620A dts
 mkdir -p target/linux/ramips/dts/
