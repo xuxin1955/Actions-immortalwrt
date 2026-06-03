@@ -62,10 +62,7 @@ jobs:
         sudo -E apt-get -y install --no-install-recommends $(curl -fsSL https://raw.githubusercontent.com/xuxin1955/depend_ubuntu2204_openwrt/refs/heads/main/depend_ubuntu2204_openwrt)
         echo "status=success" >> ${GITHUB_OUTPUT}
     
-    - name: Initialization docker
-      id: init
-      env:
-        DEBIAN_FRONTEND: noninteractive
+    - name: Initialization dockeer
       run: |
         docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace ubuntu:18.04 bash -c "set -e && export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y build-essential libncurses5-dev libncursesw5-dev gawk git libssl-dev gettext zlib1g-dev swig unzip python3 python3-pip perl rsync file bc time wget xz-utils patch diffutils ccache && echo status=success >> /workspace/init_status" && echo "status=success" >> $GITHUB_OUTPUT
 
