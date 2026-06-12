@@ -1,4 +1,4 @@
-name: Build_imm_XG_040G
+name: Build_LEDE_HiLink HLK-7621A
 
 on:
   repository_dispatch:
@@ -14,25 +14,20 @@ on:
         required: false
         default: false
         type: boolean
-      source_select:
-        description: ' ↓ 支持两种分支 手动选择要编译的分支 ↓ '
-        required: false
-        default: 'openwrt-25.12'
-        type: choice
-        options:
-        - openwrt-25.12
-        - master
-       
+
 env:
+  CONFIG_FILE: 'config/hlk7621.config'
+  REPO_URL: https://github.com/immortalwrt/immortalwrt
+  REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
-  DIY_P4_SH: diy-part4.sh
+  DIY_P8_SH: diy-part8.sh
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
   
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout
@@ -57,17 +52,6 @@ jobs:
     - name: space usage check  
       run: |
         df -H
-    
-    - name: set_branch_env
-      run: |
-       echo "source_select = ${{ github.event.inputs.source_select }}"
-       echo "REPO_URL=https://github.com/bingoguo93/immortalwrt" >> $GITHUB_ENV
-       if [[ "${{ github.event.inputs.source_select }}" == "openwrt-25.12" ]]; then
-         echo "REPO_BRANCH=openwrt-25.12" >> $GITHUB_ENV
-        else
-         echo "REPO_BRANCH=master" >> $GITHUB_ENV
-       fi
-       echo "CONFIG_FILE=config/040.config" >> $GITHUB_ENV
 
     - name: Initialization environment
       id: init
@@ -76,9 +60,9 @@ jobs:
       run: |
         sudo -E apt-get -y update
         sudo -E apt-get -y install --no-install-recommends $(curl -fsSL https://raw.githubusercontent.com/xuxin1955/depend_ubuntu2204_openwrt/refs/heads/main/depend_ubuntu2204_openwrt)
+        echo "status=success" >> ${GITHUB_OUTPUT}
 
-        echo "status=success" >> "$GITHUB_OUTPUT"
-
+        
     - name: mkbootimg build
       run: |
         wget https://github.com/xuxin1955/depend_ubuntu2204_openwrt/releases/download/ubuntu_26.04_LTS_mkbootimg/mkbootimg_34.0.5-12build1_all.deb
@@ -95,7 +79,7 @@ jobs:
         fi
         
         sudo timedatectl set-timezone "${TZ}"
-        echo "status=success" >> ${GITHUB_OUTPUT}
+        
         
     - name: Ensure Python build tools
       run: |
@@ -128,12 +112,12 @@ jobs:
         ln -sfn /mnt/openwrt/build_dir openwrt/build_dir
         df -H
         
-    - name: Load custom feeds
+    - name: feeds DIY_P8_SH
       run: |
         [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
-        chmod +x $DIY_P4_SH
+        chmod +x $DIY_P8_SH
         cd openwrt
-        $GITHUB_WORKSPACE/$DIY_P4_SH
+        $GITHUB_WORKSPACE/$DIY_P8_SH
 
     - name: Update & Install feeds
       working-directory: ./openwrt
@@ -154,13 +138,18 @@ jobs:
         cp -fv "${CONFIG_FILE}" openwrt/.config
         cd openwrt && make defconfig
         
-        
     - name: SSH 调试有效时间6h! 连接后输入q 输入exit即可退出，自动继续后续编译流程
       uses: mxschmitt/action-tmate@master
       if: ${{ inputs.ssh || contains(github.event.action, 'ssh') }}
       
-
-      
+    - name: 自动上传最新源码生成.config编译配置
+      uses: actions/upload-artifact@main
+      with:
+       name: build-config
+       path: |
+         ${{ github.workspace }}/openwrt/.config
+         ${{ github.workspace }}/openwrt/feeds.conf.default
+       include-hidden-files: true    
       
     - name: Download package
       working-directory: ./openwrt
@@ -175,25 +164,19 @@ jobs:
       
            ls -la openwrt/.config
 
-    - name: 自动上传最新源码生成.config编译配置
-      uses: actions/upload-artifact@main
-      with:
-       name: build-config
-       path: |
-         ${{ github.workspace }}/openwrt/.config
-         ${{ github.workspace }}/openwrt/feeds.conf.default
-       include-hidden-files: true
-
     - name: Compile the OpenWrt
       id: compile
       run: |
         cd openwrt/
         make defconfig
-        if [[ "${{ inputs.log_switch }}" == "true" ]]; then
-            make -j1 V=s
+
+        if make -j$(nproc); then
+            echo "Compile success"
         else
+            echo "Compile failed, retry with debug log..."
             make -j4 V=s
         fi
+
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
@@ -220,22 +203,23 @@ jobs:
       if: env.UPLOAD_RELEASE == 'true' && steps.organize.outputs.status == 'success'
       run: |
         echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
-        echo "🚀 OpenWrt firmware for XG_040G_MD" >> release.txt
+        echo "🚀 OpenWrt firmware for HiLink HLK-7621A WIFI路由模块" >> release.txt
         echo "----------------------" >> release.txt
-        echo "设备: XG-040G-MD" >> release.txt
+        echo "设备: HiLink HLK-7621A WIFI路由模块" >> release.txt
         echo "时间: $(date +"%Y-%m-%d %H:%M")" >> release.txt
         echo "内核版本: $(grep -h "kmod-usb2" ${{ env.FIRMWARE }}/*.manifest 2>/dev/null | awk -F' - ' '{print $2}' | grep -oP '[5-6]\.[0-9]+\.[0-9]+' | head -1 || echo '未知')" >> release.txt
         echo "源码仓库: ${{ env.REPO_URL }}" >> release.txt
         echo "分支: ${{ env.REPO_BRANCH }}" >> release.txt
         echo "管理地址: 192.168.100.1" >> release.txt
-        echo "默认账号: root / 无密码" >> release.txt
+        echo "登录账号: root" >> release.txt
+        echo "密码: 无" >> release.txt
         echo "" >> release.txt
         echo "### 主要插件" >> release.txt
         echo "#### luci-app 系列" >> release.txt
         grep -h "luci-app-" ${{ env.FIRMWARE }}/*.manifest 2>/dev/null | awk -F':' '{print $NF}' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -oP 'luci-app-[a-zA-Z0-9_-]+' | sort -u | sed 's/^/- /' >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
-
+        
     - name: Generate file list
       if: env.UPLOAD_RELEASE == 'true' && steps.organize.outputs.status == 'success'
       run: |
@@ -259,6 +243,10 @@ jobs:
         allowUpdates: true
         draft: false
         prerelease: false
+
+
+
+
 
     - name: Delete old workflow runs via GitHub API
       if: always()
@@ -288,3 +276,6 @@ jobs:
               "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id"
           done
         fi
+
+
+
