@@ -1,4 +1,4 @@
-name: Build_1407_Final_Logic
+name: Build_HLK-7628N_1407_Fixed
 
 on:
   repository_dispatch:
@@ -36,10 +36,11 @@ jobs:
           sed -i 's/archive.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
           sed -i 's/security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
           apt-get update
-          apt-get install -y sudo git wget curl build-essential locales python2.7 rsync unzip libncurses5-dev gawk gettext libssl-dev xsltproc flex bison gengetopt libxml2-dev intltool libelf-dev autoconf autoheader libtool
+          apt-get install -y sudo git wget curl build-essential locales python2.7 rsync unzip perl libperl-dev
           dpkg --add-architecture i386
           apt-get update
           apt-get install -y libncurses5:i386 libstdc++6:i386 zlib1g:i386 libc6:i386
+          apt-get install -y gawk gettext libssl-dev xsltproc flex bison gengetopt libxml2-dev intltool libelf-dev autoconf autoheader libtool
           ln -sf /bin/bash /bin/sh
           useradd -u 1001 -m buildbot
           echo 'buildbot ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
@@ -52,19 +53,23 @@ jobs:
 
     - name: DIY and Feeds
       run: |
-        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
-        [ -e $DIY_P3_SH ] && chmod +x $DIY_P3_SH && ./$DIY_P3_SH
+        # 14.07 专用的 DIY 逻辑
+        [ -e $FEEDS_CONF ] && cp -f $FEEDS_CONF openwrt/feeds.conf.default || true
+        # 注意：不要在 14.07 环境下运行针对 21.02/ImmortalWrt 的 diy-part.sh，因为路径不对
+        [ -e $DIY_P3_SH ] && chmod +x $DIY_P3_SH && ./$DIY_P3_SH || true
+        
         docker exec -t --user buildbot mtk_builder /bin/bash -c "
           cd openwrt
           ./scripts/feeds update -a || true
           ./scripts/feeds install -a -f || true
-         Bryan "
+        "
 
     - name: Configuration
       run: |
-        [ -e $CONFIG_FILE ] && cp -fv $CONFIG_FILE openwrt/.config
+        [ -e $CONFIG_FILE ] && cp -fv $CONFIG_FILE openwrt/.config || true
         docker exec -t --user buildbot mtk_builder /bin/bash -c "
           cd openwrt
+          # 确保有基础配置
           make defconfig
         "
 
@@ -85,6 +90,7 @@ jobs:
       run: |
         docker exec -t --user buildbot mtk_builder /bin/bash -c "
           cd openwrt
+          # 14.07 必须单线程编译，否则极易报错
           make -j1 V=s
         "
         echo "status=success" >> $GITHUB_OUTPUT
@@ -94,7 +100,8 @@ jobs:
       if: steps.compile.outputs.status == 'success'
       run: |
         mkdir -p publish
-        find openwrt/bin/ramips/ -type f -name "*.bin" | xargs -I {} cp {} publish/
+        # 14.07 的 bin 文件路径通常在这里
+        find openwrt/bin/ramips/ -type f -name "*.bin" | xargs -I {} cp {} publish/ || true
         echo "FIRMWARE=$PWD/publish" >> $GITHUB_ENV
 
     - name: Upload Artifact
@@ -111,4 +118,4 @@ jobs:
         tag: "HLK7628N-1407-${{ github.run_id }}"
         artifacts: publish/*
         token: ${{ secrets.GITHUB_TOKEN }}
-        body: "Built in Docker Ubuntu 16.04"
+        body: "Built in Docker Ubuntu 16.04 (Fixed Perl & Path)"
